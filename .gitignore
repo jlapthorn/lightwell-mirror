@@ -1,0 +1,6 @@
+mirror/
+repos.toml
+*.part
+__pycache__/
+.env
+mirror.log

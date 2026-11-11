@@ -1,0 +1,43 @@
+# Copy to repos.toml and edit. Credentials come from environment variables,
+# never from this file:
+#   export MIRROR_USERNAME=svc-mirror
+#   read -rs MIRROR_PASSWORD && export MIRROR_PASSWORD
+
+[defaults]
+output_dir = "./mirror"          # one subfolder per repo, plus _manifests/
+workers = 8                      # parallel HTTP requests
+username_env = "MIRROR_USERNAME"
+password_env = "MIRROR_PASSWORD"
+# ca_bundle = "/etc/pki/ca-trust/source/anchors/corp-root-ca.pem"
+# insecure = false               # skip TLS verification (avoid)
+# timeout = 120
+# retries = 4
+
+# method = "auto" picks:
+#   pypi                         -> simple   (PEP 503/691 index)
+#   maven, URL has /repository/  -> nexus    (Nexus 3 REST assets API)
+#   maven, URL has /artifactory/ -> artifactory (storage list API)
+#   otherwise                    -> html     (crawl directory listings)
+
+[[repo]]
+name = "maven-releases"
+format = "maven"
+url = "https://nexus.example.com/repository/maven-releases/"
+# paths = ["com/example/", "org/acme/"]   # only these subtrees
+# exclude = ["*-javadoc.jar", "*-SNAPSHOT/*"]  # fnmatch; "*" also matches "/"
+
+[[repo]]
+name = "libs-release"
+format = "maven"
+url = "https://artifactory.example.com/artifactory/libs-release-local/"
+# Separate service account for this server:
+# username_env = "ARTIFACTORY_USERNAME"
+# password_env = "ARTIFACTORY_PASSWORD"
+
+[[repo]]
+name = "pypi-internal"
+format = "pypi"
+# Nexus:       https://host/repository/<repo>/simple/
+# Artifactory: https://host/artifactory/api/pypi/<repo>/simple/
+url = "https://nexus.example.com/repository/pypi-internal/simple/"
+# projects = ["requests", "my-internal-lib"]  # only these projects
