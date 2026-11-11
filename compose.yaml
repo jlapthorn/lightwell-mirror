@@ -1,0 +1,61 @@
+# Offline Nexus Repository (Community Edition) pre-loaded with the mirror.
+#
+#   cp nexus.env.example .env    # set NEXUS_ADMIN_PASSWORD
+#   podman compose up -d
+#   podman compose logs -f seed  # watch the upload; exits when finished
+#
+# Nexus OSS can't serve a plain directory as a Maven/PyPI repo, so the "seed"
+# container (same image, no extra downloads) creates hosted repos and uploads
+# everything under $MIRROR_DIR through the Nexus API. Artifacts end up in the
+# nexus-data volume; after seeding, the mirror directory is no longer needed.
+
+services:
+  nexus:
+    image: docker.io/sonatype/nexus3:${NEXUS_VERSION:-3.98.1-alpine}
+    restart: unless-stopped
+    ports:
+      - "${NEXUS_PORT:-8081}:8081"
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: >-
+        -Xms${NEXUS_HEAP:-2g} -Xmx${NEXUS_HEAP:-2g}
+        -XX:MaxDirectMemorySize=${NEXUS_DIRECT_MEM:-2g}
+        -Djava.util.prefs.userRoot=/nexus-data/javaprefs
+    volumes:
+      - nexus-data:/nexus-data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/service/rest/v1/status/writable"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+
+  seed:
+    image: docker.io/sonatype/nexus3:${NEXUS_VERSION:-3.98.1-alpine}
+    restart: "no"
+    depends_on:
+      nexus:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/seed/seed.sh"]
+    environment:
+      NEXUS_URL: http://nexus:8081
+      NEXUS_ADMIN_PASSWORD: ${NEXUS_ADMIN_PASSWORD:?set NEXUS_ADMIN_PASSWORD in .env}
+      NEXUS_ANONYMOUS: ${NEXUS_ANONYMOUS:-false}
+      SEED_JOBS: ${SEED_JOBS:-8}
+      SEED_FORCE: ${SEED_FORCE:-0}
+      # <folder under MIRROR_DIR>:<maven|pypi> -> hosted repo of the same name
+      SEED_REPOS: >-
+        java-remediated:maven
+        java-validated:maven
+        python-remediated:pypi
+        python-validated:pypi
+      MAVEN_GROUP: ${MAVEN_GROUP:-maven-lightwell}
+      PYPI_GROUP: ${PYPI_GROUP:-pypi-lightwell}
+    volumes:
+      - ${MIRROR_DIR:-./mirror}:/mirror:ro,z
+      - ./seed:/seed:ro,z
+      - nexus-data:/nexus-data:ro   # read the generated admin.password
+      - seed-state:/seed-state
+
+volumes:
+  nexus-data:
+  seed-state:
