@@ -4,3 +4,5 @@ repos.toml
 __pycache__/
 .env
 mirror.log
+seed.log
+demo/build/

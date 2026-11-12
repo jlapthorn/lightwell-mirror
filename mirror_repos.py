@@ -74,7 +74,7 @@ class Repo:
     paths: list[str] = dataclasses.field(default_factory=list)
     projects: list[str] = dataclasses.field(default_factory=list)
     exclude: list[str] = dataclasses.field(default_factory=list)
-    username_env: str = "MIRROR_USERNAME"
+    username_env: str = "MIRROR_USERNAME"  # "" = public repo, no credentials
     password_env: str = "MIRROR_PASSWORD"
     ca_bundle: str | None = None
     insecure: bool = False
@@ -463,7 +463,9 @@ def mirror(repo: Repo, out_root: Path, workers: int, dry_run: bool,
         raise SystemExit(f"[{repo.name}] unknown method {method!r}")
     user = os.environ.get(repo.username_env)
     password = os.environ.get(repo.password_env)
-    if not user:
+    if not repo.username_env:
+        log.info("[%s] public repo, connecting anonymously", repo.name)
+    elif not user:
         log.warning("[%s] $%s not set; connecting anonymously",
                     repo.name, repo.username_env)
     http = Http(repo, user, password)

@@ -1,0 +1,22 @@
+# Top-level requirements whose dependency tree must be installable from the
+# offline Nexus. fetch_pypi_extras.sh resolves this file against the mirrored
+# Lightwell repos plus public PyPI and keeps only what Lightwell doesn't ship
+# (MarkupSafe, Werkzeug, botocore, ...) in mirror/pypi-extras/.
+#
+# Pin Lightwell packages to the versions in the mirror so the resolved
+# dependencies match what clients will actually install.
+
+# python-validated (public Lightwell demo set)
+boto3==1.43.51
+certifi==2026.5.20
+cryptography==48.0.0
+Flask==3.1.3
+Jinja2==3.1.6
+pillow==12.3.0
+pydantic==2.13.4
+PyYAML==6.0.3
+requests==2.34.0.dev1
+SQLAlchemy==2.0.50
+
+# Demo tooling
+pytest

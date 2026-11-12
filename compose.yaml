@@ -42,12 +42,15 @@ services:
       NEXUS_ANONYMOUS: ${NEXUS_ANONYMOUS:-false}
       SEED_JOBS: ${SEED_JOBS:-8}
       SEED_FORCE: ${SEED_FORCE:-0}
-      # <folder under MIRROR_DIR>:<maven|pypi> -> hosted repo of the same name
+      # <folder under MIRROR_DIR>:<maven|pypi> -> hosted repo of the same name.
+      # Group members follow this order (first wins). pypi-extras holds the
+      # PyPI dependencies Lightwell doesn't ship (fetch_pypi_extras.sh).
       SEED_REPOS: >-
         java-remediated:maven
         java-validated:maven
         python-remediated:pypi
         python-validated:pypi
+        pypi-extras:pypi
       MAVEN_GROUP: ${MAVEN_GROUP:-maven-lightwell}
       PYPI_GROUP: ${PYPI_GROUP:-pypi-lightwell}
     volumes:
