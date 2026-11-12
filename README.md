@@ -1,5 +1,8 @@
 # Lightwell offline mirror
 
+**New here? Follow [GUIDE.md](GUIDE.md)** for a step-by-step walkthrough of the
+Python demo, written for Linux admins rather than developers.
+
 Two parts:
 
 1. `mirror_repos.py` downloads every artifact from Maven/PyPI repositories,
