@@ -1,12 +1,13 @@
-# Copy to repos.toml and edit. Credentials come from environment variables,
-# never from this file:
+# Copy to repos.toml and edit. Repo names must match SEED_REPOS in
+# compose.yaml. Credentials come from environment variables, never from this
+# file:
 #   export MIRROR_USERNAME=svc-mirror
 #   read -rs MIRROR_PASSWORD && export MIRROR_PASSWORD
 
 [defaults]
 output_dir = "./mirror"          # one subfolder per repo, plus _manifests/
 workers = 8                      # parallel HTTP requests
-username_env = "MIRROR_USERNAME"
+username_env = "MIRROR_USERNAME" # set username_env = "" on a repo that is public
 password_env = "MIRROR_PASSWORD"
 # ca_bundle = "/etc/pki/ca-trust/source/anchors/corp-root-ca.pem"
 # insecure = false               # skip TLS verification (avoid)
@@ -19,25 +20,49 @@ password_env = "MIRROR_PASSWORD"
 #   maven, URL has /artifactory/ -> artifactory (storage list API)
 #   otherwise                    -> html     (crawl directory listings)
 
-[[repo]]
-name = "maven-releases"
-format = "maven"
-url = "https://nexus.example.com/repository/maven-releases/"
-# paths = ["com/example/", "org/acme/"]   # only these subtrees
-# exclude = ["*-javadoc.jar", "*-SNAPSHOT/*"]  # fnmatch; "*" also matches "/"
+# --- Lightwell public demo: no credentials needed ---------------------------
 
 [[repo]]
-name = "libs-release"
+name = "java-remediated"
 format = "maven"
-url = "https://artifactory.example.com/artifactory/libs-release-local/"
-# Separate service account for this server:
-# username_env = "ARTIFACTORY_USERNAME"
-# password_env = "ARTIFACTORY_PASSWORD"
+url = "https://packages.redhat.com/lightwell/public-lightwell-demo/java/remediated/"
+username_env = ""
+# paths = ["org/springframework/"]             # only these subtrees
+# exclude = ["*-javadoc.jar", "*-sources.jar"]  # fnmatch; "*" also matches "/"
 
 [[repo]]
-name = "pypi-internal"
+name = "java-validated"
+format = "maven"
+url = "https://packages.redhat.com/lightwell/public-lightwell-demo/java/validated/"
+username_env = ""
+
+[[repo]]
+name = "python-validated"
 format = "pypi"
-# Nexus:       https://host/repository/<repo>/simple/
-# Artifactory: https://host/artifactory/api/pypi/<repo>/simple/
-url = "https://nexus.example.com/repository/pypi-internal/simple/"
-# projects = ["requests", "my-internal-lib"]  # only these projects
+url = "https://packages.redhat.com/lightwell/public-lightwell-demo/python/validated/simple/"
+username_env = ""
+
+# --- Lightwell full repos: need a service account ---------------------------
+# The full indexes are very large and slow to list; use `projects` to mirror
+# only what you need.
+
+[[repo]]
+name = "python-remediated"
+format = "pypi"
+url = "https://packages.redhat.com/lightwell/python/remediated/simple/"
+projects = ["jinja2"]
+
+# --- Other servers -----------------------------------------------------------
+# [[repo]]
+# name = "maven-releases"
+# format = "maven"
+# url = "https://nexus.example.com/repository/maven-releases/"
+#
+# [[repo]]
+# name = "libs-release"
+# format = "maven"
+# url = "https://artifactory.example.com/artifactory/libs-release-local/"
+# username_env = "ARTIFACTORY_USERNAME"   # separate service account
+# password_env = "ARTIFACTORY_PASSWORD"
+#
+# Add any extra repo names to SEED_REPOS in compose.yaml so they get seeded.

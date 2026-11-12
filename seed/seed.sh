@@ -84,9 +84,11 @@ log "anonymous access: $anon"
 # --- repositories ---------------------------------------------------------
 create_repo() {  # name format(maven|pypi) type(hosted|group) [members...]
     name=$1 fmt=$2 type=$3; shift 3
-    if [ "$(call "$API/repositories/$name")" = 200 ]; then
-        return
-    fi
+    exists=false
+    [ "$(call "$API/repositories/$name")" = 200 ] && exists=true
+    # Existing hosted repos are left alone; existing groups get their member
+    # list updated below, so a repo added to SEED_REPOS later joins the group.
+    [ "$exists" = true ] && [ "$type" != group ] && return
     if [ "$type" = group ]; then
         members=$(printf '"%s",' "$@" | sed 's/,$//')
         body="{\"name\":\"$name\",\"online\":true,
@@ -98,6 +100,13 @@ create_repo() {  # name format(maven|pypi) type(hosted|group) [members...]
     fi
     [ "$fmt" = maven ] && body="$body,\"maven\":{\"versionPolicy\":\"MIXED\",\"layoutPolicy\":\"PERMISSIVE\",\"contentDisposition\":\"INLINE\"}"
     body="$body}"
+    if [ "$exists" = true ]; then
+        code=$(call -X PUT -H 'Content-Type: application/json' -d "$body" \
+            "$API/repositories/$fmt/$type/$name")
+        [ "$code" = 204 ] || { log "updating $name failed (HTTP $code): $(cat /tmp/resp)"; exit 1; }
+        log "$fmt group $name members:$*"
+        return
+    fi
     code=$(call -X POST -H 'Content-Type: application/json' -d "$body" \
         "$API/repositories/$fmt/$type")
     [ "$code" = 201 ] || { log "creating $name failed (HTTP $code): $(cat /tmp/resp)"; exit 1; }
@@ -148,7 +157,7 @@ for pair in $SEED_REPOS; do
 done
 
 # Group repos: one URL per format, members in SEED_REPOS order (first wins).
-# Created last so a repo added later to SEED_REPOS can be added by hand.
+# Created (or their member list updated) after all hosted repos exist.
 [ -n "$maven_members" ] && [ -n "${MAVEN_GROUP:-}" ] && create_repo "$MAVEN_GROUP" maven group $maven_members
 [ -n "$pypi_members" ] && [ -n "${PYPI_GROUP:-}" ] && create_repo "$PYPI_GROUP" pypi group $pypi_members
 

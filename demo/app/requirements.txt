@@ -1,0 +1,6 @@
+# Jinja2 is pinned to 3.1.5: this is the version our platform team has
+# certified, and moving to a new upstream release means another round of
+# regression testing and change approval.
+flask==3.1.3
+jinja2==3.1.5
+pytest
