@@ -9,7 +9,9 @@
 # --- 1. Start the services ----------------------------------------------------
 
 # Start Nexus (the offline package server) and Gitea (the offline git server) in the background.
-podman compose up -d
+# Nexus must already be seeded. Plain `podman compose up -d` also starts "seed", which waits
+# for Nexus to report healthy; on hosts where podman health checks fail, that wait never ends.
+podman compose up -d nexus gitea
 
 # Check both are answering (Nexus takes a minute or two; ignore its "unhealthy" status label).
 curl -fsS -o /dev/null http://localhost:8081/repository/pypi-lightwell/simple/ && echo "Nexus OK"; curl -fsS -o /dev/null http://localhost:3000/api/healthz && echo "Gitea OK"
