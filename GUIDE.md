@@ -114,7 +114,6 @@ podman run --rm registry.access.redhat.com/ubi9/ubi-minimal echo ok
 ```bash
 git clone git@github.com:jlapthorn/lightwell-mirror.git
 cd lightwell-mirror
-git checkout lightwell-python-demo     # until it's merged into main
 ```
 
 All commands from here on are run from this `lightwell-mirror` directory.
