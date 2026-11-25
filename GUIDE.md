@@ -50,7 +50,7 @@ security fix added, versioned `3.1.5+rhlw.1`. The demo shows that:
                     │ 5. pip install               │ 4. Renovate looks up
                     ▼                              │    Lightwell builds
    demo app repo in Gitea on localhost:3000 ◄──────┘    and opens a PR
-   (renovate-demo/lightwell-python-demo-app)
+   (demo/lightwell-python-demo-app)
 ```
 
 * **Package**: a library someone else wrote that the application uses
@@ -290,7 +290,7 @@ so the `mirror/` folder is no longer needed by it.
 ## Step 7: Set up Gitea
 
 ```bash
-./renovate-demo/setup-gitea.sh
+./demo/setup-gitea.sh
 ```
 
 This creates:
@@ -298,9 +298,9 @@ This creates:
 * **gitea-admin**: you, the developer who reviews and merges. The password is
   `GITEA_ADMIN_PASSWORD` in `.env`.
 * **renovate-bot**: the account Renovate uses. Its access token is saved to
-  `renovate-demo/.renovate-token`, readable only by you.
-* **demo/lightwell-python-demo-app**: the app repository, pushed from
-  `renovate-demo/lightwell-python-demo-app/`, with `jinja2==3.1.5` pinned.
+  `demo/.renovate-token`, readable only by you.
+* **demo/lightwell-python-demo-app** in Gitea: the app repository, pushed
+  from the project folder of the same name, with `jinja2==3.1.5` pinned.
 
 Open **http://localhost:3000/demo/lightwell-python-demo-app** in a browser and
 log in as `gitea-admin` (`grep GITEA_ADMIN_PASSWORD .env`). There's one commit
@@ -310,15 +310,15 @@ and no pull requests yet.
 
 ## Step 8: Run the demo
 
-Run the commands in `renovate-demo/commands.sh` from step 3 onwards, one at a
+Run the commands in `demo/commands.sh` from step 3 onwards, one at a
 time, or let a script walk through them:
 
 ```bash
-./renovate-demo/run_demo.sh
+./demo/run_demo.sh
 ```
 
 The script pauses after each step. Press **Enter** to continue. (To run
-without pauses, for a dry run: `DEMO_PAUSE=0 ./renovate-demo/run_demo.sh`.) It
+without pauses, for a dry run: `DEMO_PAUSE=0 ./demo/run_demo.sh`.) It
 resets the Gitea repository first, so it can be run any number of times.
 
 ### What you'll see, and what to say
@@ -436,8 +436,8 @@ and without touching application code."
 | Check status | `podman compose ps` |
 | Nexus logs | `podman compose logs -f nexus` |
 | Re-upload everything | `SEED_FORCE=1 podman compose run --rm --no-deps seed` |
-| Start the demo over | `./renovate-demo/setup-gitea.sh --reset && rm -rf renovate-demo/build` |
-| Run Renovate by hand | `./renovate-demo/run-renovate.sh` (`LOG_LEVEL=debug` for detail) |
+| Start the demo over | `./demo/setup-gitea.sh --reset && rm -rf demo/build` |
+| Run Renovate by hand | `./demo/run-renovate.sh` (`LOG_LEVEL=debug` for detail) |
 | **Delete everything** (containers, stored packages *and* Gitea data) | `podman compose down -v` |
 
 To add another Lightwell package later, add it to `projects` under
@@ -460,7 +460,7 @@ repository that's already loaded, use `SEED_FORCE=1`.
 | Demo: `401` from Nexus | `NEXUS_ANONYMOUS=true` is missing from `.env`. Add it and re-run the seed command. |
 | Demo: `No matching distribution found for MarkupSafe` (or another library) | The extras weren't loaded. Re-run step 4, then the seed command. |
 | Renovate opens no PR | The repo was already remediated. Start the demo over (see above). |
-| `git clone` says the destination already exists | `rm -rf renovate-demo/build` |
+| `git clone` says the destination already exists | `rm -rf demo/build` |
 | Demo: `uv is required` | `sudo dnf install uv`. |
 | Demo steps 1, 2 or the final audit error or hang | They need internet access to pypi.org and osv.dev. Check proxy and firewall. |
 | `Address already in use` | Port 8081 or 3000 is taken. Set `NEXUS_PORT=` or `GITEA_PORT=` in `.env`. |
@@ -473,7 +473,7 @@ On the connected machine, after steps 3–4:
 podman save -o images.tar docker.io/sonatype/nexus3:3.98.1-alpine \
     docker.io/gitea/gitea:28.4.0-rootless docker.io/renovate/renovate:44.257.3
 git clone https://github.com/project-lightwell/lightwell-osv   # Lightwell's advisories
-tar -cf lightwell-mirror.tar mirror compose.yaml seed nexus.env.example renovate-demo lightwell-osv
+tar -cf lightwell-mirror.tar mirror compose.yaml seed nexus.env.example demo lightwell-osv
 ```
 
 Copy both files across, then on the offline machine:

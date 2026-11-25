@@ -41,7 +41,7 @@ cp repos.example.toml repos.toml
 # .env: NEXUS_ADMIN_PASSWORD, GITEA_ADMIN_PASSWORD and NEXUS_ANONYMOUS=true
 podman compose up -d nexus gitea
 podman compose run --rm --no-deps seed   # load ./mirror into Nexus
-./renovate-demo/setup-gitea.sh
+./demo/setup-gitea.sh
 ```
 
 * `NEXUS_ANONYMOUS=true` matters: pip and Renovate read from Nexus without
@@ -54,7 +54,7 @@ podman compose run --rm --no-deps seed   # load ./mirror into Nexus
 
 * `gitea-admin`, the admin you log in as, with `GITEA_ADMIN_PASSWORD`;
 * `renovate-bot`, with write access to the repo. Its API token is in
-  `renovate-demo/.renovate-token` (gitignored, mode 0600);
+  `demo/.renovate-token` (gitignored, mode 0600);
 * the org `demo` and the public repo `demo/lightwell-python-demo-app`, with
   the labels `security` and `lightwell`.
 
@@ -67,8 +67,8 @@ By hand, one command at a time: follow [`commands.sh`](commands.sh) from step 2.
 Or as a guided script:
 
 ```bash
-./renovate-demo/run_demo.sh              # pauses between steps
-DEMO_PAUSE=0 ./renovate-demo/run_demo.sh # straight through
+./demo/run_demo.sh              # pauses between steps
+DEMO_PAUSE=0 ./demo/run_demo.sh # straight through
 ```
 
 | Step | What happens |
@@ -81,7 +81,7 @@ DEMO_PAUSE=0 ./renovate-demo/run_demo.sh # straight through
 | 5 | Main is rebuilt from Nexus only. The tests pass, the `filters.py` diff shows the backported fix, and the Lightwell-aware audit reports **FIXED** |
 | 6 | Renovate runs again and opens nothing new; it will open the next PR when `+rhlw.2` ships |
 
-To start over: `./renovate-demo/setup-gitea.sh --reset && rm -rf renovate-demo/build`.
+To start over: `./demo/setup-gitea.sh --reset && rm -rf demo/build`.
 
 Things worth showing in Gitea (http://localhost:3000, log in as `gitea-admin`):
 the PR body with its Lightwell note, the one-line diff, and the **Dependency
@@ -120,8 +120,8 @@ Lightwell's OSV records:
 
 ```bash
 pip-audit -s osv -f json -o audit.json --path <site-packages>
-renovate-demo/lightwell_audit.py audit.json                         # RHLW records from osv.dev
-renovate-demo/lightwell_audit.py audit.json --osv-dir lightwell-osv  # offline copy
+demo/lightwell_audit.py audit.json                         # RHLW records from osv.dev
+demo/lightwell_audit.py audit.json --osv-dir lightwell-osv  # offline copy
 ```
 
 * A finding on a `+rhlw` build whose CVE an RHLW record marks fixed is
@@ -139,8 +139,8 @@ For the offline side, carry the feed across with the mirror
 ## Running Renovate by hand
 
 ```bash
-./renovate-demo/run-renovate.sh
-LOG_LEVEL=debug ./renovate-demo/run-renovate.sh
+./demo/run-renovate.sh
+LOG_LEVEL=debug ./demo/run-renovate.sh
 ```
 
 It runs `renovate/renovate` with `--network host` and `RENOVATE_PLATFORM=gitea`,

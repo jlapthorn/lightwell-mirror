@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Prepare the offline Gitea (compose service "gitea") for the Renovate demo:
 #   * admin user  $GITEA_ADMIN_USER (default gitea-admin), password from .env
-#   * bot user    renovate-bot, with an API token saved to renovate-demo/.renovate-token
+#   * bot user    renovate-bot, with an API token saved to demo/.renovate-token
 #   * repository  demo/lightwell-python-demo-app, pushed from ./lightwell-python-demo-app
 #
-#   ./renovate-demo/setup-gitea.sh           # safe to re-run; creates what's missing
-#   ./renovate-demo/setup-gitea.sh --reset   # delete and re-push the repo (start the demo over)
+#   ./demo/setup-gitea.sh           # safe to re-run; creates what's missing
+#   ./demo/setup-gitea.sh --reset   # delete and re-push the repo (start the demo over)
 #
 # Gitea's CLI runs in a throwaway container that shares the gitea service's
 # volumes, so no `podman exec` is needed.

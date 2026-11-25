@@ -78,7 +78,7 @@ Lightwell index. This demo pins the rebuild explicitly instead, because:
 ### Running Renovate
 
 Renovate runs as a container against this repository's Gitea:
-`renovate-demo/run-renovate.sh` in the lightwell-mirror
+`demo/run-renovate.sh` in the lightwell-mirror
 project. In the Java demo the same role is
 played by a scheduled GitHub Action.
 

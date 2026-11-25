@@ -4,8 +4,8 @@
 # pin to Lightwell's patched build of the *same* version, the PR is merged,
 # and the app is rebuilt from the offline Nexus. No upgrade, no code change.
 #
-#   ./renovate-demo/run_demo.sh              # pauses between steps on a terminal
-#   DEMO_PAUSE=0 ./renovate-demo/run_demo.sh # run straight through
+#   ./demo/run_demo.sh              # pauses between steps on a terminal
+#   DEMO_PAUSE=0 ./demo/run_demo.sh # run straight through
 #
 # Needs: uv (Python 3.12 and pip-audit), podman, the nexus and gitea compose
 # services, and internet access for public PyPI (step 1) and the OSV database
@@ -78,7 +78,7 @@ python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); print("    versioni
 say "Run Renovate (on a schedule in real life):"
 "$HERE/run-renovate.sh" 2>&1 | grep -E '(Branch|PR) created|"prTitle"|ERROR|WARN' || true
 PR=$(open_prs | json 'print(next(p["number"] for p in d if p["head"]["ref"].startswith("renovate/")))') ||
-    die "Renovate didn't open a PR; rerun with LOG_LEVEL=debug ./renovate-demo/run-renovate.sh"
+    die "Renovate didn't open a PR; rerun with LOG_LEVEL=debug ./demo/run-renovate.sh"
 open_prs | json "p=next(p for p in d if p['number']==$PR); print('    PR #%d: %s\n    labels: %s\n    %s' % (p['number'], p['title'], ', '.join(l['name'] for l in p['labels']), p['html_url']))"
 say "The whole change:"
 gitea_api GET "/repos/$SLUG/pulls/$PR.diff" | grep -E '^[-+][^-+]' | sed 's/^/    /'

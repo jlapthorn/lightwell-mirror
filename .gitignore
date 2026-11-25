@@ -6,5 +6,5 @@ __pycache__/
 mirror.log
 seed.log
 lightwell-osv/
-renovate-demo/.renovate-token
-renovate-demo/build/
+demo/.renovate-token
+demo/build/

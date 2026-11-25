@@ -14,7 +14,7 @@ Three parts:
    dependencies Lightwell doesn't ship.
 2. `compose.yaml` runs Sonatype Nexus Repository Community Edition and
    loads `mirror/` into it, plus a Gitea git server for the demo.
-3. [`renovate-demo/`](renovate-demo/README.md) is the demo: the app repo,
+3. [`demo/`](demo/README.md) is the demo: the app repo,
    its Renovate configuration, and the scripts that drive it.
 
 ## 1. Mirror (online host)

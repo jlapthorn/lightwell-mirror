@@ -4,15 +4,15 @@
 # the repo's renovate.json, looks packages up on the offline Nexus and opens
 # remediation PRs in Gitea.
 #
-#   ./renovate-demo/run-renovate.sh
-#   LOG_LEVEL=debug ./renovate-demo/run-renovate.sh
+#   ./demo/run-renovate.sh
+#   LOG_LEVEL=debug ./demo/run-renovate.sh
 #
 # Needs: podman, the gitea and nexus compose services, and setup-gitea.sh
 # having been run (it writes the bot token). Extra arguments go to renovate.
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
-[ -s "$TOKEN_FILE" ] || die "no Renovate token at $TOKEN_FILE; run renovate-demo/setup-gitea.sh"
+[ -s "$TOKEN_FILE" ] || die "no Renovate token at $TOKEN_FILE; run demo/setup-gitea.sh"
 wait_for_gitea
 
 # The token goes through the environment, not the command line, so it

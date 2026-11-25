@@ -1,22 +1,22 @@
 PS0='\e[H\e[2J\e[1;32m$\e[0m $(fc -ln -1 | sed -E "s/^[[:space:]]+//; s/[[:space:]]+#[[:alnum:]._-]+$//")\n' #start
-./renovate-demo/setup-gitea.sh 
-git clone http://localhost:3000/demo/lightwell-python-demo-app.git renovate-demo/build/app 
-cat renovate-demo/build/app/requirements.txt
-uv venv -q --seed --python 3.12 renovate-demo/build/before
-renovate-demo/build/before/bin/pip install -r renovate-demo/build/app/requirements.txt
-renovate-demo/build/before/bin/python -c 'import jinja2; print("jinja2", jinja2.__version__)'
-uvx -q pip-audit -s osv --desc on --path renovate-demo/build/before/lib/python3.12/site-packages
-uvx -q pip-audit -s osv -f json -o renovate-demo/build/before-audit.json --path renovate-demo/build/before/lib/python3.12/site-packages
-python3 -I renovate-demo/lightwell_audit.py renovate-demo/build/before-audit.json
-(cd renovate-demo/build/app && ../before/bin/python -m pytest -q -p no:cacheprovider)
-./renovate-demo/run-renovate.sh
-git -C renovate-demo/build/app pull --ff-only
-grep '^jinja2' renovate-demo/build/app/requirements.txt
-uv venv -q --seed --python 3.12 renovate-demo/build/after
-(cd renovate-demo/build/app && PIP_CONFIG_FILE=pip.conf ../after/bin/pip install -q -r requirements.txt)
-renovate-demo/build/after/bin/python -c 'import jinja2; print("jinja2", jinja2.__version__)'
-(cd renovate-demo/build/app && ../after/bin/python -m pytest -q -p no:cacheprovider)
-uvx -q pip-audit -s osv -f json -o renovate-demo/build/after-audit.json --path renovate-demo/build/after/lib/python3.12/site-packages
-python3 -I renovate-demo/lightwell_audit.py renovate-demo/build/after-audit.json
-./renovate-demo/run-renovate.sh
+./demo/setup-gitea.sh 
+git clone http://localhost:3000/demo/lightwell-python-demo-app.git demo/build/app 
+cat demo/build/app/requirements.txt
+uv venv -q --seed --python 3.12 demo/build/before
+demo/build/before/bin/pip install -r demo/build/app/requirements.txt
+demo/build/before/bin/python -c 'import jinja2; print("jinja2", jinja2.__version__)'
+uvx -q pip-audit -s osv --desc on --path demo/build/before/lib/python3.12/site-packages
+uvx -q pip-audit -s osv -f json -o demo/build/before-audit.json --path demo/build/before/lib/python3.12/site-packages
+python3 -I demo/lightwell_audit.py demo/build/before-audit.json
+(cd demo/build/app && ../before/bin/python -m pytest -q -p no:cacheprovider)
+./demo/run-renovate.sh
+git -C demo/build/app pull --ff-only
+grep '^jinja2' demo/build/app/requirements.txt
+uv venv -q --seed --python 3.12 demo/build/after
+(cd demo/build/app && PIP_CONFIG_FILE=pip.conf ../after/bin/pip install -q -r requirements.txt)
+demo/build/after/bin/python -c 'import jinja2; print("jinja2", jinja2.__version__)'
+(cd demo/build/app && ../after/bin/python -m pytest -q -p no:cacheprovider)
+uvx -q pip-audit -s osv -f json -o demo/build/after-audit.json --path demo/build/after/lib/python3.12/site-packages
+python3 -I demo/lightwell_audit.py demo/build/after-audit.json
+./demo/run-renovate.sh
 unset PS0
