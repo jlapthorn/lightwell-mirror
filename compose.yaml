@@ -59,6 +59,29 @@ services:
       - nexus-data:/nexus-data:ro   # read the generated admin.password
       - seed-state:/seed-state
 
+  # Offline git server for the Renovate demo (renovate-demo/). Renovate opens
+  # its Lightwell remediation PRs here. renovate-demo/setup-gitea.sh creates
+  # the users, the bot token and the demo repository.
+  gitea:
+    image: docker.io/gitea/gitea:${GITEA_VERSION:-28.4.0-rootless}
+    restart: unless-stopped
+    ports:
+      - "${GITEA_PORT:-3000}:3000"
+    environment:
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__server__ROOT_URL: http://localhost:${GITEA_PORT:-3000}/
+      GITEA__server__DISABLE_SSH: "true"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__actions__ENABLED: "false"
+    volumes:
+      - gitea-data:/var/lib/gitea
+      - gitea-config:/etc/gitea
+    # No healthcheck: the scripts poll http://localhost:3000/api/healthz from
+    # the host instead.
+
 volumes:
   nexus-data:
   seed-state:
+  gitea-data:
+  gitea-config:

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "ignorePresets": [
+    "mergeConfidence:age-confidence-badges"
+  ],
+  "respectLatest": false,
+  "pip_requirements": {
+    "enabled": false
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Lightwell remediated: treat the upstream version as the compatibility key and only move between its +rhlw rebuilds (3.1.5 -> 3.1.5+rhlw.1 -> 3.1.5+rhlw.2, never 3.1.6). The Python twin of the java-remediated preset in lightwell-experience/renovate-config.",
+      "managerFilePatterns": [
+        "/(^|/)requirements[^/]*\\.txt$/"
+      ],
+      "matchStrings": [
+        "(?m)^(?<depName>[A-Za-z0-9][A-Za-z0-9._-]*)\\s*==\\s*(?<currentValue>[^\\s;#]+)"
+      ],
+      "datasourceTemplate": "pypi",
+      "registryUrlTemplate": "https://packages.redhat.com/lightwell/python/remediated/simple/",
+      "versioningTemplate": "regex:^(?<compatibility>[^+]+)(\\+rhlw\\.(?<major>\\d+))?$"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Look up packages on the offline Nexus (the same index as pip.conf) instead of packages.redhat.com",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDatasources": [
+        "pypi"
+      ],
+      "registryUrls": [
+        "http://localhost:8081/repository/pypi-lightwell/simple/"
+      ]
+    },
+    {
+      "description": "Label and word Lightwell remediation PRs",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchNewValue": "/\\+rhlw\\./",
+      "labels": [
+        "security",
+        "lightwell"
+      ],
+      "commitMessageExtra": "to {{{newVersion}}} (Red Hat Lightwell)",
+      "branchTopic": "{{{depNameSanitized}}}-lightwell",
+      "prBodyColumns": [
+        "Package",
+        "Change"
+      ],
+      "prBodyNotes": [
+        "**Red Hat Lightwell remediation.** `{{{depName}}} {{{newVersion}}}` is Red Hat's rebuild of the upstream `{{{currentValue}}}` release with security fixes backported. The upstream version doesn't change, so there's no feature upgrade to re-certify. The CVEs it fixes are published as `RHLW-*` OSV records in the `Red Hat Lightwell:PyPI` ecosystem: https://osv.dev/list?ecosystem=Red+Hat+Lightwell%3APyPI&q={{{depName}}}"
+      ]
+    }
+  ]
+}

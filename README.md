@@ -3,6 +3,10 @@
 **New here? Follow [GUIDE.md](GUIDE.md)** for a step-by-step walkthrough of the
 Python demo, written for Linux admins rather than developers.
 
+**Renovate:** [renovate-demo/](renovate-demo/README.md) runs the same Jinja2
+CVE demo with Renovate opening the Lightwell remediation PR in an offline
+Gitea (`compose.yaml` service `gitea`).
+
 Two parts:
 
 1. `mirror_repos.py` downloads every artifact from Maven/PyPI repositories,
