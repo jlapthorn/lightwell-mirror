@@ -5,8 +5,6 @@ __pycache__/
 .env
 mirror.log
 seed.log
-demo/build/
-demo/bad-app/build/
-demo/lightwell-osv/
+lightwell-osv/
 renovate-demo/.renovate-token
 renovate-demo/build/

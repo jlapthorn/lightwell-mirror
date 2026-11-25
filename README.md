@@ -1,19 +1,21 @@
 # Lightwell offline mirror
 
-**New here? Follow [GUIDE.md](GUIDE.md)** for a step-by-step walkthrough of the
-Python demo, written for Linux admins rather than developers.
+**New here? Follow [GUIDE.md](GUIDE.md)** for a step-by-step walkthrough,
+written for Linux admins rather than developers. It goes from a blank machine
+to the demo: a Python app with a Jinja2 CVE, fixed by a Renovate pull request
+that moves it to Red Hat Lightwell's patched build of the same version, all
+served from a local Nexus and Gitea.
 
-**Renovate:** [renovate-demo/](renovate-demo/README.md) runs the same Jinja2
-CVE demo with Renovate opening the Lightwell remediation PR in an offline
-Gitea (`compose.yaml` service `gitea`).
-
-Two parts:
+Three parts:
 
 1. `mirror_repos.py` downloads every artifact from Maven/PyPI repositories,
    public or authenticated, (configured in `repos.toml`), keeping each repo's folder
-   layout under `mirror/<repo>/`.
+   layout under `mirror/<repo>/`. `fetch_pypi_extras.sh` adds the PyPI
+   dependencies Lightwell doesn't ship.
 2. `compose.yaml` runs Sonatype Nexus Repository Community Edition and
-   loads `mirror/` into it.
+   loads `mirror/` into it, plus a Gitea git server for the demo.
+3. [`renovate-demo/`](renovate-demo/README.md) is the demo: the app repo,
+   its Renovate configuration, and the scripts that drive it.
 
 ## 1. Mirror (online host)
 
@@ -83,6 +85,15 @@ podman compose up -d             # or: podman-compose up -d
 podman compose logs -f seed      # exits 0 when everything is uploaded
 ```
 
+If `podman compose up -d` hangs on "Waiting" for nexus, podman can't run
+health checks on this host, so `seed` never starts. Press Ctrl-C (the
+containers keep running) and start the services without that dependency:
+
+```bash
+podman compose up -d nexus gitea
+podman compose run --rm --no-deps seed   # seed.sh waits for Nexus itself
+```
+
 Nexus OSS can't serve a plain directory as a repository. So the `seed`
 container (the same Nexus image, nothing extra to download) does the
 following:
@@ -100,7 +111,7 @@ following:
 Artifacts end up in the `nexus-data` volume. After seeding, the `mirror/`
 folder isn't needed by Nexus. Each repo is seeded once (a marker is stored
 in the `seed-state` volume). To re-upload, run
-`SEED_FORCE=1 podman compose up seed`.
+`SEED_FORCE=1 podman compose up seed` (or `SEED_FORCE=1 podman compose run --rm --no-deps seed`).
 
 Client URLs (port 8081 by default):
 

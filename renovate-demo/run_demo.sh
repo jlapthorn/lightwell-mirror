@@ -28,7 +28,7 @@ site() { echo "$BUILD/$1/lib/python$PY/site-packages"; }
 lw_audit() {
     uvx -q pip-audit -s osv -f json -o "$BUILD/$1-audit.json" --path "$(site "$1")" \
         >/dev/null 2>&1 || true
-    run python3 -I "$ROOT/demo/lightwell_audit.py" "$BUILD/$1-audit.json" ${OSV_DIR:+--osv-dir "$OSV_DIR"}
+    run python3 -I "$HERE/lightwell_audit.py" "$BUILD/$1-audit.json" ${OSV_DIR:+--osv-dir "$OSV_DIR"}
 }
 open_prs() { gitea_api GET "/repos/$SLUG/pulls?state=open"; }
 json() { python3 -c "import json,sys; d=json.load(sys.stdin); $1"; }

@@ -1,12 +1,13 @@
-# Lightwell Python demo: step-by-step guide
+# Lightwell + Renovate Python demo: step-by-step guide
 
 This guide takes you from a fresh Linux machine to a running demonstration of
-Red Hat Lightwell fixing a security vulnerability in a Python application.
+Red Hat Lightwell fixing a security vulnerability in a Python application,
+with Renovate proposing the fix as a pull request.
 It assumes you know Linux well (shell, podman, systemd, curl). It assumes no
 Python development experience; terms are explained as they come up.
 
 **Time needed:** about 30 minutes, most of it waiting for downloads and for
-Nexus to start.
+Nexus to start. The demo itself takes about 10 minutes.
 
 ---
 
@@ -24,9 +25,11 @@ security fix added, versioned `3.1.5+rhlw.1`. The demo shows that:
 
 1. the scanner finds the vulnerability;
 2. Lightwell has a fix for the exact version in use;
-3. switching to it is a one-line change, installed from your own local
-   package server (no internet needed for that part);
-4. the application's tests pass, the change is tiny and auditable, and the
+3. **Renovate**, a bot that keeps dependencies up to date, opens a pull
+   request with the one-line change, and a person reviews and merges it;
+4. the app is rebuilt from your own local package server (no internet needed
+   for that part);
+5. the application's tests pass, the change is tiny and auditable, and the
    fix is traceable to a published Red Hat advisory.
 
 ## How the pieces fit together
@@ -43,10 +46,11 @@ security fix added, versioned `3.1.5+rhlw.1`. The demo shows that:
                                ▼
               Nexus Repository on localhost:8081
               "pypi-lightwell" = remediated → validated → extras
-                               │
-                               │ 4. pip install
-                               ▼
-                     demo application (demo/)
+                    │                              ▲
+                    │ 5. pip install               │ 4. Renovate looks up
+                    ▼                              │    Lightwell builds
+   demo app repo in Gitea on localhost:3000 ◄──────┘    and opens a PR
+   (renovate-demo/lightwell-python-demo-app)
 ```
 
 * **Package**: a library someone else wrote that the application uses
@@ -67,6 +71,12 @@ security fix added, versioned `3.1.5+rhlw.1`. The demo shows that:
   everything installs offline.
 * **pypi-lightwell** is a *group* in Nexus: one URL that searches remediated
   first, then validated, then extras. A Lightwell build always wins.
+* **Gitea**: a small git server, like a self-hosted GitHub. It holds the demo
+  app's repository and the pull request.
+* **Renovate**: a bot that reads a project's dependency pins, looks for newer
+  versions, and opens pull requests. Here it's configured to propose only
+  Lightwell rebuilds of the version already pinned. It runs as a container
+  when you call it.
 
 ---
 
@@ -80,7 +90,7 @@ sudo dnf install -y git podman podman-compose uv python3-pip curl
 
 | Tool | Why |
 |---|---|
-| `podman`, `podman-compose` | run Nexus in containers |
+| `podman`, `podman-compose` | run Nexus, Gitea and Renovate in containers |
 | `uv` | gives the demo its own Python 3.12 and runs the security scanner, without touching the system Python |
 | `python3-pip` | used by `fetch_pypi_extras.sh` to download the extras |
 | `git`, `curl` | fetch this repo; check things are working |
@@ -88,7 +98,7 @@ sudo dnf install -y git podman podman-compose uv python3-pip curl
 You also need:
 
 * **Internet access** for steps 2–3 (downloads) and for parts of the demo.
-* **Port 8081** free (Nexus) and **port 5055** free (the demo app).
+* **Port 8081** free (Nexus) and **port 3000** free (Gitea).
 * **About 4 GB of RAM** for Nexus and about 2 GB of disk.
 * **A Lightwell service account** (username and token) for the remediated
   repository. Your Red Hat contact provides it.
@@ -189,38 +199,43 @@ Lightwell builds for.
 At this point `ls mirror/` should show `_manifests`, `pypi-extras`,
 `python-remediated` and `python-validated`.
 
-## Step 5: Start Nexus and load the packages into it
+## Step 5: Start Nexus and Gitea, and load the packages
 
-Create the settings file with an admin password of your choice. Anonymous
-read access lets `pip` install without a login:
+Download the three container images:
+
+```bash
+podman pull docker.io/sonatype/nexus3:3.98.1-alpine docker.io/gitea/gitea:28.4.0-rootless docker.io/renovate/renovate:44.257.3
+```
+
+Create the settings file with admin passwords for Nexus and Gitea. Anonymous
+read access lets `pip` and Renovate read from Nexus without a login:
 
 ```bash
 cat > .env <<EOF
 NEXUS_ADMIN_PASSWORD=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
+GITEA_ADMIN_PASSWORD=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
 NEXUS_ANONYMOUS=true
 EOF
 chmod 600 .env
 ```
 
-Start everything:
+Start the two servers:
 
 ```bash
-podman compose up -d
+podman compose up -d nexus gitea
 ```
-
-This starts two containers:
 
 * **nexus**: the package server. The first start takes **3–5 minutes**.
-* **seed**: waits until Nexus is healthy, creates the repositories, uploads
-  everything from `mirror/`, then exits.
+* **gitea**: the git server. Ready in a few seconds.
 
-Follow the seed job:
+Then load the packages into Nexus:
 
 ```bash
-podman compose logs -f seed
+podman compose run --rm --no-deps seed
 ```
 
-Success looks like this (Ctrl-C to stop following):
+The **seed** job waits until Nexus is up, creates the repositories, uploads
+everything from `mirror/`, then exits. Success looks like this:
 
 ```
 seed: skip java-remediated: /mirror/java-remediated not found
@@ -236,6 +251,12 @@ seed: finished (exit 0)
 ```
 
 The two "skip java" lines are expected, because only Python was mirrored.
+
+> **Why not just `podman compose up -d`?** That also starts `seed`, but only
+> once podman reports Nexus as *healthy*. On some hosts podman can't run
+> health checks (`podman ps` shows Nexus as "unhealthy" even though it
+> works), so it waits forever. Starting `seed` with `--no-deps` skips that
+> wait; the job checks Nexus itself.
 
 > **If `podman compose` says "Cannot connect to the Docker daemon"**: your
 > system is using `docker-compose` as the backend, which needs the podman API
@@ -266,26 +287,48 @@ so the `mirror/` folder is no longer needed by it.
 
 ---
 
-## Step 7: Run the demo
+## Step 7: Set up Gitea
 
 ```bash
-./demo/run_demo.sh
+./renovate-demo/setup-gitea.sh
+```
+
+This creates:
+
+* **gitea-admin**: you, the developer who reviews and merges. The password is
+  `GITEA_ADMIN_PASSWORD` in `.env`.
+* **renovate-bot**: the account Renovate uses. Its access token is saved to
+  `renovate-demo/.renovate-token`, readable only by you.
+* **demo/lightwell-python-demo-app**: the app repository, pushed from
+  `renovate-demo/lightwell-python-demo-app/`, with `jinja2==3.1.5` pinned.
+
+Open **http://localhost:3000/demo/lightwell-python-demo-app** in a browser and
+log in as `gitea-admin` (`grep GITEA_ADMIN_PASSWORD .env`). There's one commit
+and no pull requests yet.
+
+---
+
+## Step 8: Run the demo
+
+Run the commands in `renovate-demo/commands.sh` from step 3 onwards, one at a
+time, or let a script walk through them:
+
+```bash
+./renovate-demo/run_demo.sh
 ```
 
 The script pauses after each step. Press **Enter** to continue. (To run
-without pauses, for a dry run: `DEMO_PAUSE=0 ./demo/run_demo.sh`.)
-
-It creates everything it needs under `demo/build/` and removes the previous
-run's files each time it starts, so it can be run any number of times.
+without pauses, for a dry run: `DEMO_PAUSE=0 ./renovate-demo/run_demo.sh`.) It
+resets the Gitea repository first, so it can be run any number of times.
 
 ### What you'll see, and what to say
 
-**Step 1: Build the app as it is today**
+**1. The app as it is today**
 
-The script creates an isolated Python environment (a *virtual environment*:
-a private folder with its own Python and libraries, so nothing touches the
-system) and installs the app's libraries from the public pypi.org, exactly
-as the app is configured today:
+The app is cloned from Gitea and installed into an isolated Python
+environment (a *virtual environment*: a private folder with its own Python and
+libraries, so nothing touches the system), from the public pypi.org, exactly
+as it's configured today:
 
 ```
 flask==3.1.3
@@ -296,7 +339,7 @@ jinja2==3.1.5
 *Say:* "This is our application as it runs in production. Jinja2 is pinned at
 3.1.5 because that's the version we've certified."
 
-**Step 2: Security scan finds a known vulnerability**
+**2. Security scan finds a known vulnerability**
 
 ```
 jinja2 3.1.5   PYSEC-2026-1471 3.1.6   Jinja2 vulnerable to sandbox breakout ...
@@ -305,7 +348,7 @@ jinja2 3.1.5   PYSEC-2026-1471 3.1.6   Jinja2 vulnerable to sandbox breakout ...
 `pip-audit` is a standard scanner. It checks every installed library against
 the public OSV vulnerability database and suggests upgrading to 3.1.6.
 
-Then the script checks the finding against **Red Hat Lightwell's advisories**:
+Then the finding is checked against **Red Hat Lightwell's advisories**:
 
 ```
 jinja2   3.1.5   CVE-2025-27516  VULNERABLE  upstream fix: 3.1.6; Lightwell fix: 3.1.5+rhlw.1 (RHLW-2026-bbcf7d39b1fbb255)
@@ -315,54 +358,72 @@ Finally the app's tests run, including one written for this CVE. It fails:
 
 ```
 1 failed, 3 passed
-=> vulnerable: the sandbox regression test fails on jinja2 3.1.5
 ```
 
 *Say:* "The scanner's only advice is to upgrade. But Lightwell has published a
 fix for the exact version we run."
 
-**Step 3: Remediate with Lightwell**
+**3. Renovate proposes the Lightwell fix**
+
+Renovate's configuration lives in the app repo (`renovate.json`). It only
+allows Lightwell rebuilds of the version already pinned: `3.1.5` can become
+`3.1.5+rhlw.1`, but never `3.1.6`. It looks packages up on the local Nexus.
+Renovate runs once and opens a pull request:
+
+```
+INFO: PR created (repository=demo/lightwell-python-demo-app, branch=renovate/jinja2-lightwell)
+      "prTitle": "Update dependency jinja2 to 3.1.5+rhlw.1 (Red Hat Lightwell)",
+```
+
+Show the PR in Gitea: the `security` and `lightwell` labels, the note in the
+description explaining the Lightwell rebuild, and **Files changed**:
 
 ```
 -jinja2==3.1.5
 +jinja2==3.1.5+rhlw.1
-$ pip install --index-url http://localhost:8081/repository/pypi-lightwell/simple/ ...
+```
+
+*Say:* "In real life Renovate runs on a schedule. It has proposed one line:
+same version, patched build. Nobody had to go looking for the fix."
+
+**4. Review and merge**
+
+Click **Create merge commit** on the PR (or let the script do it).
+
+*Say:* "A person still reviews and merges. Renovate proposes, we decide."
+
+**5. Rebuild from Nexus and verify**
+
+The repo's `pip.conf` points pip at the local Nexus. The merged app is rebuilt
+from there, with no internet:
+
+```
 > Installed: jinja2 3.1.5+rhlw.1
 ```
 
-*Say:* "That is the whole change: one line, and pointing at our own package
-server. This install never touched the internet."
-
-**Step 4: Verify the fix**
-
 * **a) Tests:** the same, unchanged tests now pass: `4 passed`.
-* **b) What changed:** the script compares the old and new Jinja2 files. Only
-  one function (`do_attr` in `filters.py`) changed, and it's the official
-  upstream fix copied back onto 3.1.5.
-* **c) Provenance:** the package carries an **SBOM** (Software Bill of
-  Materials, a machine-readable label) stating Red Hat built it from upstream
-  `jinja2 3.1.5`.
-* **d) Re-scan:** the plain scanner *still* reports the vulnerability. It only
-  compares version numbers and doesn't know about backported fixes. The
+* **b) What changed:** comparing the old and new Jinja2 files, only one
+  function (`do_attr` in `filters.py`) changed, and it's the official upstream
+  fix copied back onto 3.1.5. The only other change is the version string.
+* **c) Security gate:** a plain scanner *still* reports the vulnerability. It
+  only compares version numbers and doesn't know about backported fixes. The
   Lightwell-aware check reads Red Hat's published advisory and reports:
 
   ```
   jinja2   3.1.5+rhlw.1  CVE-2025-27516  FIXED   by Lightwell (RHLW-2026-bbcf7d39b1fbb255)
-  => security gate passes
   ```
 
-*Say:* "We can prove what changed, who built it, and that it closes the CVE,
-and a CI pipeline can check that automatically."
+*Say:* "We can prove what changed and that it closes the CVE, and a CI
+pipeline can check that automatically."
 
-**Step 5: Run the remediated app**
+**6. Renovate keeps watching**
 
-The app is started briefly and called with `curl`, showing it runs on the
-patched library:
+Renovate runs again and opens nothing new. When Lightwell publishes
+`3.1.5+rhlw.2`, the next run opens a PR for it.
 
-```
-{"jinja2":"3.1.5+rhlw.1","status":"ok"}
-{"body":"Hi Ada Lovelace, your order A-1042 has shipped."}
-```
+*Say:* "A CVE was found, Renovate proposed Lightwell's patched build of the
+same version, we merged one line, and the app was fixed, without an upgrade
+and without touching application code."
 
 ---
 
@@ -370,17 +431,18 @@ patched library:
 
 | Task | Command |
 |---|---|
-| Stop Nexus (keeps data) | `podman compose stop` |
-| Start it again | `podman compose start` (ready in about a minute) |
+| Stop Nexus and Gitea (keeps data) | `podman compose stop` |
+| Start them again | `podman compose start` (Nexus ready in about a minute) |
 | Check status | `podman compose ps` |
 | Nexus logs | `podman compose logs -f nexus` |
-| Re-upload everything | `SEED_FORCE=1 podman compose up seed` |
-| **Delete everything** (containers *and* stored packages) | `podman compose down -v` |
-| Remove demo build output | `rm -rf demo/build` |
+| Re-upload everything | `SEED_FORCE=1 podman compose run --rm --no-deps seed` |
+| Start the demo over | `./renovate-demo/setup-gitea.sh --reset && rm -rf renovate-demo/build` |
+| Run Renovate by hand | `./renovate-demo/run-renovate.sh` (`LOG_LEVEL=debug` for detail) |
+| **Delete everything** (containers, stored packages *and* Gitea data) | `podman compose down -v` |
 
 To add another Lightwell package later, add it to `projects` under
 `python-remediated` in `repos.toml`, then re-run steps 3 and 4 and
-`podman compose up seed`. Only new repositories are uploaded. To re-upload a
+`podman compose run --rm --no-deps seed`. Only new repositories are uploaded. To re-upload a
 repository that's already loaded, use `SEED_FORCE=1`.
 
 ## Troubleshooting
@@ -392,31 +454,39 @@ repository that's already loaded, use `SEED_FORCE=1`.
 | `Cannot connect to the Docker daemon` | See the note in step 5. |
 | Seed log stuck on `waiting for http://nexus:8081` | Nexus is still starting (up to 5 minutes the first time). Check `podman compose logs nexus` for errors such as running out of memory. |
 | `admin login failed` in the seed log | `.env` password changed after Nexus was first set up. Use the original password, or start over with `podman compose down -v`. |
-| Demo: `Nexus not reachable` | Nexus isn't running: `podman compose up -d`. |
-| Demo: `No matching distribution found for MarkupSafe` (or another library) | The extras weren't loaded. Re-run step 4, then `podman compose up seed`. |
+| `podman compose up -d` never finishes ("Waiting" on nexus) | Health checks can't run on this host. Ctrl-C (the containers keep running) and use the commands in step 5. |
+| Nexus shows "unhealthy" in `podman ps` | Same cause, harmless. Check it with the `curl` in step 6. |
+| Demo: `Nexus not reachable` | Nexus isn't running: `podman compose up -d nexus gitea`. |
+| Demo: `401` from Nexus | `NEXUS_ANONYMOUS=true` is missing from `.env`. Add it and re-run the seed command. |
+| Demo: `No matching distribution found for MarkupSafe` (or another library) | The extras weren't loaded. Re-run step 4, then the seed command. |
+| Renovate opens no PR | The repo was already remediated. Start the demo over (see above). |
+| `git clone` says the destination already exists | `rm -rf renovate-demo/build` |
 | Demo: `uv is required` | `sudo dnf install uv`. |
-| Demo step 2 or 4d errors or hangs | They need internet access to pypi.org and osv.dev. Check proxy and firewall. |
-| `Address already in use` | Port 8081 or 5055 is taken. Set `NEXUS_PORT=` in `.env`, or `PORT=5056 ./demo/run_demo.sh`. |
+| Demo steps 1, 2 or the final audit error or hang | They need internet access to pypi.org and osv.dev. Check proxy and firewall. |
+| `Address already in use` | Port 8081 or 3000 is taken. Set `NEXUS_PORT=` or `GITEA_PORT=` in `.env`. |
 
 ## Taking it to an air-gapped site (optional)
 
 On the connected machine, after steps 3–4:
 
 ```bash
-podman save -o nexus3.tar docker.io/sonatype/nexus3:3.98.1-alpine
+podman save -o images.tar docker.io/sonatype/nexus3:3.98.1-alpine \
+    docker.io/gitea/gitea:28.4.0-rootless docker.io/renovate/renovate:44.257.3
 git clone https://github.com/project-lightwell/lightwell-osv   # Lightwell's advisories
-tar -cf lightwell-mirror.tar mirror compose.yaml seed nexus.env.example demo lightwell-osv
+tar -cf lightwell-mirror.tar mirror compose.yaml seed nexus.env.example renovate-demo lightwell-osv
 ```
 
 Copy both files across, then on the offline machine:
 
 ```bash
-podman load -i nexus3.tar
+podman load -i images.tar
 tar -xf lightwell-mirror.tar
-# then step 5 onwards
+# then step 5 onwards (skip the podman pull)
 ```
 
-On a fully offline machine, demo steps 1, 2 and 4d can't reach pypi.org or
-osv.dev, and `uv` can't download Python 3.12 or the scanner the first time. Run the demo on a connected laptop that can reach the offline Nexus,
+Renovate needs nothing from the internet: it only talks to Gitea and Nexus.
+On a fully offline machine, demo steps 1, 2 and the final audit can't reach
+pypi.org or osv.dev, and `uv` can't download Python 3.12 or the scanner the
+first time. Run the demo on a connected laptop that can reach the offline Nexus,
 or point the Lightwell check at the local advisories with
 `LIGHTWELL_OSV_DIR=./lightwell-osv`.

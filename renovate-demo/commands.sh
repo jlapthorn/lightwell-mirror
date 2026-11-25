@@ -78,7 +78,7 @@ renovate-demo/build/before/bin/python -c 'import jinja2; print("jinja2", jinja2.
 uvx -q pip-audit -s osv --desc on --path renovate-demo/build/before/lib/python3.12/site-packages
 
 # Check the finding against Lightwell's advisories: Lightwell has a fix for 3.1.5, called 3.1.5+rhlw.1.
-uvx -q pip-audit -s osv -f json -o renovate-demo/build/before-audit.json --path renovate-demo/build/before/lib/python3.12/site-packages; python3 -I demo/lightwell_audit.py renovate-demo/build/before-audit.json
+uvx -q pip-audit -s osv -f json -o renovate-demo/build/before-audit.json --path renovate-demo/build/before/lib/python3.12/site-packages; python3 -I renovate-demo/lightwell_audit.py renovate-demo/build/before-audit.json
 
 # Run the tests: the CVE regression test fails (1 failed, 3 passed).
 (cd renovate-demo/build/app && ../before/bin/python -m pytest -q -p no:cacheprovider)
@@ -119,7 +119,7 @@ diff -rq -x __pycache__ renovate-demo/build/before/lib/python3.12/site-packages/
 diff -u renovate-demo/build/before/lib/python3.12/site-packages/jinja2/filters.py renovate-demo/build/after/lib/python3.12/site-packages/jinja2/filters.py
 
 # The security gate: the Lightwell-aware check marks the CVE FIXED and exits 0, so CI passes.
-uvx -q pip-audit -s osv -f json -o renovate-demo/build/after-audit.json --path renovate-demo/build/after/lib/python3.12/site-packages; python3 -I demo/lightwell_audit.py renovate-demo/build/after-audit.json; echo "exit code: $?"
+uvx -q pip-audit -s osv -f json -o renovate-demo/build/after-audit.json --path renovate-demo/build/after/lib/python3.12/site-packages; python3 -I renovate-demo/lightwell_audit.py renovate-demo/build/after-audit.json; echo "exit code: $?"
 
 # Run Renovate again: no new PR, because main is on the latest Lightwell build (it opens one when +rhlw.2 ships).
 ./renovate-demo/run-renovate.sh 2>&1 | grep -E 'PR created|Branch created|Repository finished'
