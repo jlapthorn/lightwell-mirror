@@ -49,7 +49,25 @@ Do this reset before **every** take.
 * **Commands:** keep this file open on a second monitor (or printed) and
   copy-paste the commands rather than typing them live.
 
-### 4. Choose a recorder
+### 4. Optional: step through the commands with Ctrl+O
+
+Instead of copy-pasting, load the demo commands into the recording
+terminal's history:
+
+```bash
+source renovate-demo/video-shell.sh
+```
+
+Then press **Ctrl+R**, type `#s2a`, and run each command with **Ctrl+O**
+instead of Enter. Bash runs it and puts the next demo command at the prompt.
+The screen clears before each command, which is shown at the top without its
+label. Labels match the scenes (`#s4b` is Scene 4, second command), so
+Ctrl+R `#s5b` jumps straight to the Renovate run. The commands are in
+`video-history.txt`; the `clear` lines in the scenes below aren't needed in
+this mode. Your normal `~/.bash_history` isn't changed. Close the terminal
+when you're done.
+
+### 5. Choose a recorder
 
 * **OBS Studio** (`flatpak install flathub com.obsproject.Studio`). Add a
   "Screen Capture (PipeWire)" source and record at 1920×1080, 30 fps, MKV

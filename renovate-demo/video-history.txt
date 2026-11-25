@@ -1,0 +1,19 @@
+podman ps --format '{{.Names}}\t{{.Image}}'   #s2a
+curl -s http://localhost:8081/repository/pypi-lightwell/simple/jinja2/ | grep -o 'jinja2-[0-9][^"<#]*\.whl' | sort -u   #s2b
+git clone -q http://localhost:3000/demo/lightwell-python-demo-app.git renovate-demo/build/app   #s3a
+cat renovate-demo/build/app/requirements.txt   #s3b
+uv venv -q --seed --python 3.12 renovate-demo/build/before && PIP_CONFIG_FILE=/dev/null renovate-demo/build/before/bin/pip install -q --index-url https://pypi.org/simple/ -r renovate-demo/build/app/requirements.txt   #s3c
+renovate-demo/build/before/bin/python -c 'import jinja2; print("jinja2", jinja2.__version__)'   #s3d
+uvx -q pip-audit -s osv --path renovate-demo/build/before/lib/python3.12/site-packages   #s4a
+uvx -q pip-audit -s osv -f json -o renovate-demo/build/before-audit.json --path renovate-demo/build/before/lib/python3.12/site-packages; python3 -I demo/lightwell_audit.py renovate-demo/build/before-audit.json   #s4b
+(cd renovate-demo/build/app && ../before/bin/python -m pytest -q -p no:cacheprovider --tb=line)   #s4c
+grep -E '"versioningTemplate"|"http://localhost:8081' renovate-demo/build/app/renovate.json   #s5a
+./renovate-demo/run-renovate.sh 2>&1 | grep -E 'Renovate started|(Branch|PR) created|"prTitle"|"labels"|Repository finished'   #s5b
+git -C renovate-demo/build/app pull -q --ff-only && grep '^jinja2' renovate-demo/build/app/requirements.txt   #s6a
+grep -v '^#' renovate-demo/build/app/pip.conf   #s7a
+uv venv -q --seed --python 3.12 renovate-demo/build/after && (cd renovate-demo/build/app && PIP_CONFIG_FILE=pip.conf ../after/bin/pip install -q -r requirements.txt) && renovate-demo/build/after/bin/python -c 'import jinja2; print("jinja2", jinja2.__version__)'   #s7b
+(cd renovate-demo/build/app && ../after/bin/python -m pytest -q -p no:cacheprovider)   #s7c
+diff -rq -x __pycache__ renovate-demo/build/before/lib/python3.12/site-packages/jinja2 renovate-demo/build/after/lib/python3.12/site-packages/jinja2   #s7d
+diff -u renovate-demo/build/before/lib/python3.12/site-packages/jinja2/filters.py renovate-demo/build/after/lib/python3.12/site-packages/jinja2/filters.py | grep -E '^[-+]' | grep -vE '^(\+\+\+|---) ' | grep -vE '^[-+]\s*#|"""|``|\.$'   #s7e
+uvx -q pip-audit -s osv -f json -o renovate-demo/build/after-audit.json --path renovate-demo/build/after/lib/python3.12/site-packages; python3 -I demo/lightwell_audit.py renovate-demo/build/after-audit.json; echo "exit code: $?"   #s7f
+./renovate-demo/run-renovate.sh 2>&1 | grep -E '(Branch|PR) created|Repository finished'   #s8a

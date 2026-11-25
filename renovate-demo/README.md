@@ -21,6 +21,7 @@ locally: Nexus serves the packages, and Gitea hosts the repo and the PR.
 | `run_demo.sh` | The guided walkthrough |
 | `commands.sh` | The same walkthrough as individual commands, each with a one-line explanation, for running by hand |
 | `VIDEO_SCRIPT.md` | Shot-by-shot script for recording the demo: commands, what to show, what to say |
+| `video-shell.sh`, `video-history.txt` | Load the video's commands into a terminal's history, to step through them with Ctrl+O |
 
 ## Setup
 
