@@ -218,6 +218,11 @@ EOF
 chmod 600 .env
 ```
 
+Do this **once**. Nexus and Gitea set their admin passwords from `.env` on
+their first start and keep them. If you regenerate `.env` later, the seed job
+fails with `admin login failed (HTTP 401)`. To recover, start them again from
+empty with `podman compose down -v`, which keeps `mirror/`.
+
 Start the two servers:
 
 ```bash

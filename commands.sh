@@ -34,7 +34,8 @@ podman pull docker.io/sonatype/nexus3:3.98.1-alpine docker.io/gitea/gitea:28.4.0
 # --- 1. Start the services and load Nexus -------------------------------------
 
 # Create .env with an admin password for Nexus and for Gitea, and anonymous read access to Nexus (pip and Renovate need it).
-printf 'NEXUS_ADMIN_PASSWORD=%s\nGITEA_ADMIN_PASSWORD=%s\nNEXUS_ANONYMOUS=true\n' "$(openssl rand -hex 12)" "$(openssl rand -hex 12)" > .env && chmod 600 .env
+# It keeps an existing .env: Nexus and Gitea keep the passwords from their first start, so new ones would lock you out.
+[ -e .env ] && echo ".env already exists, keeping it" || { printf 'NEXUS_ADMIN_PASSWORD=%s\nGITEA_ADMIN_PASSWORD=%s\nNEXUS_ANONYMOUS=true\n' "$(openssl rand -hex 12)" "$(openssl rand -hex 12)" > .env && chmod 600 .env; }
 
 # Start Nexus (the offline package server) and Gitea (the offline git server) in the background.
 # (Not plain `podman compose up -d`: that also starts "seed", which waits for Nexus to report
