@@ -112,7 +112,7 @@ uv venv -q --seed --python 3.12 renovate-demo/build/after && (cd renovate-demo/b
 
 # --- 8. Proof and the security gate -------------------------------------------
 
-# Show that filters.py is the only file Lightwell changed in Jinja2.
+# Show the two files Lightwell changed in Jinja2: __init__.py (only the version string) and filters.py (the fix).
 diff -rq -x __pycache__ renovate-demo/build/before/lib/python3.12/site-packages/jinja2 renovate-demo/build/after/lib/python3.12/site-packages/jinja2
 
 # Show the change itself: the upstream 3.1.6 fix for the |attr filter, backported to 3.1.5.

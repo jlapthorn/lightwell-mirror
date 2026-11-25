@@ -20,6 +20,7 @@ locally: Nexus serves the packages, and Gitea hosts the repo and the PR.
 | `run-renovate.sh` | One Renovate run against the repo (the Java demo's scheduled Action) |
 | `run_demo.sh` | The guided walkthrough |
 | `commands.sh` | The same walkthrough as individual commands, each with a one-line explanation, for running by hand |
+| `VIDEO_SCRIPT.md` | Shot-by-shot script for recording the demo: commands, what to show, what to say |
 
 ## Setup
 
