@@ -16,6 +16,8 @@ Three parts:
    loads `mirror/` into it, plus a Gitea git server for the demo.
 3. [`demo/`](demo/README.md) is the demo: the app repo,
    its Renovate configuration, and the scripts that drive it.
+   [`commands.sh`](commands.sh) lists every command from a blank machine to
+   the end of the demo, each with a one-line explanation.
 
 ## 1. Mirror (online host)
 

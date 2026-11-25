@@ -24,13 +24,12 @@ see [../GUIDE.md](../GUIDE.md).
 | `setup-gitea.sh` | Creates the Gitea users, the Renovate token and the repo. `--reset` starts over |
 | `run-renovate.sh` | One Renovate run against the repo (the Java demo's scheduled Action) |
 | `run_demo.sh` | The whole demo as a guided script, pausing between steps |
-| `commands.sh` | The same demo as individual commands, each with a one-line explanation |
 | `lightwell_audit.py` | Reconciles pip-audit findings with Lightwell's advisories (the security gate) |
 | `lib.sh` | Settings and helpers shared by the scripts |
 
 ## Setup
 
-Steps 0 and 1 of [`commands.sh`](commands.sh) go from a blank machine to a
+Steps 0 and 1 of [`commands.sh`](../commands.sh), in the repo root, go from a blank machine to a
 loaded Nexus and Gitea. In short:
 
 ```bash
@@ -63,7 +62,7 @@ the `gitea` volumes, so it doesn't need `podman exec`.
 
 ## Run the demo
 
-By hand, one command at a time: follow [`commands.sh`](commands.sh) from step 2.
+By hand, one command at a time: follow [`../commands.sh`](../commands.sh) from step 3.
 Or as a guided script:
 
 ```bash

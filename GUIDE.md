@@ -309,7 +309,7 @@ and no pull requests yet.
 
 ## Step 8: Run the demo
 
-Run the commands in `demo/commands.sh` from step 3 onwards, one at a
+Run the commands in `commands.sh` from step 3 onwards, one at a
 time, or let a script walk through them:
 
 ```bash
