@@ -1,20 +1,54 @@
-# Lightwell + Renovate demo, one command at a time. Run every command from the
-# root of the repo (~/git/lightwell-mirror). Not meant to be run as a script.
+# Lightwell + Renovate demo, one command at a time, starting from a blank
+# machine. Run every command from the root of your clone of the repo. Not
+# meant to be run as a script.
+#
+# Needs: podman (with compose), uv, Python 3.11+, internet access for the
+# download steps, and a Lightwell service account (GUIDE.md, Step 2).
 
 # --- Start over (skip on the very first run) ---------------------------------
 
-# Reset the Gitea repo to its starting state and delete the scratch builds.
+# Reset the Gitea repo to its starting state and delete the scratch builds
+# (Nexus keeps its packages, so you can go straight to step 2).
 ./renovate-demo/setup-gitea.sh --reset && rm -rf renovate-demo/build
 
-# --- 1. Start the services ----------------------------------------------------
+# --- 0. Download the Lightwell packages (online) -------------------------------
+
+# Load your Lightwell service-account credentials into this shell (see GUIDE.md, Step 2, to create the file).
+source ~/.lightwell-creds
+
+# Create the mirror config from the example; it lists the Lightwell repos to download.
+cp repos.example.toml repos.toml
+
+# Download the two Python repos the demo uses into ./mirror (python-remediated needs the credentials).
+./mirror_repos.py -c repos.toml -r python-remediated -r python-validated
+
+# Download the dependencies Lightwell doesn't ship (Flask's Werkzeug, Jinja2's MarkupSafe, pytest, ...) into ./mirror/pypi-extras.
+./fetch_pypi_extras.sh
+
+# Check what was downloaded: one folder per repo.
+ls mirror
+
+# Download the three container images (save them with `podman save` to carry them to an air-gapped host).
+podman pull docker.io/sonatype/nexus3:3.98.1-alpine docker.io/gitea/gitea:28.4.0-rootless docker.io/renovate/renovate:44.257.3
+
+# --- 1. Start the services and load Nexus -------------------------------------
+
+# Create .env with an admin password for Nexus and for Gitea, and anonymous read access to Nexus (pip and Renovate need it).
+printf 'NEXUS_ADMIN_PASSWORD=%s\nGITEA_ADMIN_PASSWORD=%s\nNEXUS_ANONYMOUS=true\n' "$(openssl rand -hex 12)" "$(openssl rand -hex 12)" > .env && chmod 600 .env
 
 # Start Nexus (the offline package server) and Gitea (the offline git server) in the background.
-# Nexus must already be seeded. Plain `podman compose up -d` also starts "seed", which waits
-# for Nexus to report healthy; on hosts where podman health checks fail, that wait never ends.
+# (Not plain `podman compose up -d`: that also starts "seed", which waits for Nexus to report
+# healthy, and on hosts where podman health checks fail that wait never ends.)
 podman compose up -d nexus gitea
 
-# Check both are answering (Nexus takes a minute or two; ignore its "unhealthy" status label).
+# Load ./mirror into Nexus: creates the hosted repos and the pypi-lightwell group (waits for Nexus by itself; ~2 minutes on first start).
+podman compose run --rm --no-deps seed
+
+# Check both are answering.
 curl -fsS -o /dev/null http://localhost:8081/repository/pypi-lightwell/simple/ && echo "Nexus OK"; curl -fsS -o /dev/null http://localhost:3000/api/healthz && echo "Gitea OK"
+
+# Check Nexus serves the three Jinja2 builds: 3.1.4+rhlw.1 and 3.1.5+rhlw.1 (Lightwell), 3.1.6 (upstream).
+curl -s http://localhost:8081/repository/pypi-lightwell/simple/jinja2/ | grep -o 'jinja2-[0-9][^"<#]*\.whl' | sort -u
 
 # --- 2. Set up Gitea ----------------------------------------------------------
 

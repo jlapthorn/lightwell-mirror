@@ -23,16 +23,26 @@ locally: Nexus serves the packages, and Gitea hosts the repo and the PR.
 
 ## Setup
 
-Nexus has to be seeded first (see `../README.md` and `../GUIDE.md`). Then:
+From a blank machine, steps 0 and 1 of [`commands.sh`](commands.sh) download
+the two Lightwell Python repos and their dependencies into `./mirror`, pull
+the images, write `.env`, and load Nexus. In short:
 
 ```bash
-# in .env (see nexus.env.example)
-GITEA_ADMIN_PASSWORD=<choose one>
-
-podman pull docker.io/gitea/gitea:28.4.0-rootless docker.io/renovate/renovate:44.257.3
-podman compose up -d                 # nexus, seed and gitea
+source ~/.lightwell-creds
+cp repos.example.toml repos.toml
+./mirror_repos.py -c repos.toml -r python-remediated -r python-validated
+./fetch_pypi_extras.sh
+# .env: NEXUS_ADMIN_PASSWORD, GITEA_ADMIN_PASSWORD and NEXUS_ANONYMOUS=true
+podman compose up -d nexus gitea
+podman compose run --rm --no-deps seed   # load ./mirror into Nexus
 ./renovate-demo/setup-gitea.sh
 ```
+
+`NEXUS_ANONYMOUS=true` matters: pip, Renovate and `git clone` all read from
+Nexus and Gitea without logging in. `seed` is run by hand with `--no-deps`
+because `podman compose up -d` makes it wait for Nexus to report healthy,
+which never happens on hosts where podman can't run health checks. `seed.sh`
+waits for Nexus on its own.
 
 `setup-gitea.sh` creates:
 
